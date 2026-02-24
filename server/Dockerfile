@@ -1,24 +1,32 @@
-# Build Stage
+# ── Build Stage ──────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /source
 
-# Copy solution and projects
+# Copy solution + project files first (layer-cache friendly)
 COPY BudgetControl.sln .
-COPY src/BudgetControl.API/BudgetControl.API.csproj src/BudgetControl.API/
+COPY src/BudgetControl.API/BudgetControl.API.csproj              src/BudgetControl.API/
 COPY src/BudgetControl.Application/BudgetControl.Application.csproj src/BudgetControl.Application/
 COPY src/BudgetControl.Infrastructure/BudgetControl.Infrastructure.csproj src/BudgetControl.Infrastructure/
-COPY src/BudgetControl.Domain/BudgetControl.Domain.csproj src/BudgetControl.Domain/
+COPY src/BudgetControl.Domain/BudgetControl.Domain.csproj         src/BudgetControl.Domain/
+
 RUN dotnet restore
 
-# Copy all source and build
+# Copy remaining source and publish
 COPY . .
-WORKDIR /source/src/BudgetControl.API
-RUN dotnet publish -c Release -o /app
+RUN dotnet publish src/BudgetControl.API/BudgetControl.API.csproj \
+    -c Release \
+    -o /app \
+    --no-restore
 
-# Run Stage
+# ── Runtime Stage ─────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
+
+# Copy published output
 COPY --from=build /app .
-EXPOSE 8080
+
+# Render injects PORT; default to 8080
 ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
 ENTRYPOINT ["dotnet", "BudgetControl.API.dll"]

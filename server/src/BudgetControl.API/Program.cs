@@ -12,8 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Infrastructure services (Clean Architecture)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// JWT Authentication
+// JWT Authentication — env vars override appsettings on Render
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey   = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")   ?? jwtSettings["SecretKey"]!;
+var jwtIssuer   = Environment.GetEnvironmentVariable("JWT_ISSUER")        ?? jwtSettings["Issuer"]!;
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE")      ?? jwtSettings["Audience"]!;
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -23,24 +27,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!))
+                Encoding.UTF8.GetBytes(secretKey))
         };
     });
 
 builder.Services.AddAuthorization();
 
-// CORS
+// CORS — reads ALLOWED_ORIGINS env var on Render (comma-separated)
+// e.g. "https://budget-control.vercel.app,https://other-domain.com"
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
+        var allowedOrigins = (
+            Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")
+            ?? builder.Configuration["AllowedOrigins"]
+            ?? "http://localhost:5173"
+        ).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
         policy
-            .WithOrigins(
-                builder.Configuration["AllowedOrigins"] ?? "http://localhost:5173",
-                "https://*.vercel.app")
+            .WithOrigins(allowedOrigins)
             .SetIsOriginAllowedToAllowWildcardSubdomains()
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -114,5 +123,6 @@ using (var scope = app.Services.CreateScope())
     await BudgetControl.Infrastructure.Data.DbSeeder.SeedAsync(context);
 }
 
+// Render sets PORT env var; locally defaults to 5000
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Run($"http://0.0.0.0:{port}");

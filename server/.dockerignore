@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.vs/
+**/.idea/
+*.log
+*.txt
+*.sql
+build_output.txt
+msbuild.log

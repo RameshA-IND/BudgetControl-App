@@ -1,0 +1,29 @@
+services:
+  # ─── Backend API (Docker-based .NET 8) ───────────────────────
+  - type: web
+    name: budget-control-api
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: budget-control-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true          # Render auto-generates a secure secret
+      - key: JWT_ISSUER
+        value: BudgetQAPI
+      - key: JWT_AUDIENCE
+        value: BudgetQClient
+      - key: ALLOWED_ORIGINS
+        value: https://budget-control-client.vercel.app  # ← Update after Vercel deploy
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+  # ─── PostgreSQL Database ─────────────────────────────────────
+databases:
+  - name: budget-control-db
+    databaseName: budgetcontrol
+    plan: free
