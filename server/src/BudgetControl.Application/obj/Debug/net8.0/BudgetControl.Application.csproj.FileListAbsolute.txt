@@ -1,0 +1,15 @@
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\bin\Debug\net8.0\BudgetControl.Application.deps.json
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\bin\Debug\net8.0\BudgetControl.Application.dll
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\bin\Debug\net8.0\BudgetControl.Application.pdb
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\bin\Debug\net8.0\BudgetControl.Domain.dll
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\bin\Debug\net8.0\BudgetControl.Domain.pdb
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetControl.Application.csproj.AssemblyReference.cache
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetControl.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetControl.Application.AssemblyInfoInputs.cache
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetControl.Application.AssemblyInfo.cs
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetControl.Application.csproj.CoreCompileInputs.cache
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetCo.B04A1234.Up2Date
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetControl.Application.dll
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\refint\BudgetControl.Application.dll
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\BudgetControl.Application.pdb
+C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.Application\obj\Debug\net8.0\ref\BudgetControl.Application.dll
