@@ -116,12 +116,34 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed Database
+// Seed Database — retry because Render DB can take a few seconds to be ready
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var context = scope.ServiceProvider.GetRequiredService<BudgetControl.Infrastructure.Data.AppDbContext>();
-    await BudgetControl.Infrastructure.Data.DbSeeder.SeedAsync(context);
+
+    const int maxRetries = 5;
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    {
+        try
+        {
+            logger.LogInformation("Database seed attempt {Attempt}/{Max}...", attempt, maxRetries);
+            await BudgetControl.Infrastructure.Data.DbSeeder.SeedAsync(context);
+            logger.LogInformation("Database seeded successfully.");
+            break;
+        }
+        catch (Exception ex) when (attempt < maxRetries)
+        {
+            logger.LogWarning(ex, "DB seed attempt {Attempt} failed. Retrying in 3s...", attempt);
+            await Task.Delay(TimeSpan.FromSeconds(3));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Database seeding failed after {Max} attempts. App will start anyway.", maxRetries);
+        }
+    }
 }
+
 
 // Render sets PORT env var; locally defaults to 5000
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";

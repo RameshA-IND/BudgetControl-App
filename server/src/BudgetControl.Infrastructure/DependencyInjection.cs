@@ -6,6 +6,7 @@ using BudgetControl.Domain.Interfaces;
 using BudgetControl.Infrastructure.Data;
 using BudgetControl.Infrastructure.Repositories;
 using BudgetControl.Infrastructure.Services;
+using Npgsql;
 
 namespace BudgetControl.Infrastructure;
 
@@ -37,19 +38,43 @@ public static class DependencyInjection
     /// <summary>
     /// Resolves the DB connection string.
     /// On Render, DATABASE_URL is injected as postgres://user:pass@host:port/db
-    /// We convert that to an Npgsql-compatible format.
+    /// We convert that to an Npgsql-compatible connection string.
     /// </summary>
     private static string GetConnectionString(IConfiguration configuration)
     {
-        // Check for Render's DATABASE_URL first
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
         if (!string.IsNullOrWhiteSpace(databaseUrl))
         {
-            // Convert postgres://user:pass@host:port/dbname  →  Host=...;Database=...;...
+            // Ensure it has a valid scheme for Uri parsing
+            if (databaseUrl.StartsWith("postgres://"))
+                databaseUrl = "postgresql" + databaseUrl[8..];
+
             var uri = new Uri(databaseUrl);
-            var userInfo = uri.UserInfo.Split(':');
-            return $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};" +
-                   $"Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true;";
+
+            // Split only on the FIRST colon to handle passwords that contain colons
+            var userInfoRaw = uri.UserInfo;
+            var firstColon  = userInfoRaw.IndexOf(':');
+            var username     = Uri.UnescapeDataString(userInfoRaw[..firstColon]);
+            var password     = Uri.UnescapeDataString(userInfoRaw[(firstColon + 1)..]);
+
+            // Build a clean Npgsql connection string using NpgsqlConnectionStringBuilder
+            var builder = new NpgsqlConnectionStringBuilder
+            {
+                Host                = uri.Host,
+                Port                = uri.Port > 0 ? uri.Port : 5432,
+                Database            = uri.AbsolutePath.TrimStart('/'),
+                Username            = username,
+                Password            = password,
+                // Internal Render connections work fine with Prefer; external need Require
+                SslMode             = SslMode.Prefer,
+                TrustServerCertificate = true,
+                Pooling             = true,
+                MaxPoolSize         = 20,
+                ConnectionIdleLifetime = 300,
+            };
+
+            return builder.ConnectionString;
         }
 
         // Fallback to appsettings.json for local development
