@@ -42,8 +42,13 @@ public static class DependencyInjection
     /// </summary>
     private static string GetConnectionString(IConfiguration configuration)
     {
-        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+        // Priority 1: Plain Npgsql connection string (used with Supabase on Render)
+        var directConnStr = Environment.GetEnvironmentVariable("CONNECTION_STRING");
+        if (!string.IsNullOrWhiteSpace(directConnStr))
+            return directConnStr;
 
+        // Priority 2: Render's postgres:// DATABASE_URL (used with Render Postgres)
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
         if (!string.IsNullOrWhiteSpace(databaseUrl))
         {
             // Ensure it has a valid scheme for Uri parsing
@@ -52,32 +57,29 @@ public static class DependencyInjection
 
             var uri = new Uri(databaseUrl);
 
-            // Split only on the FIRST colon to handle passwords that contain colons
+            // Split only on the FIRST colon — passwords can contain colons
             var userInfoRaw = uri.UserInfo;
             var firstColon  = userInfoRaw.IndexOf(':');
             var username     = Uri.UnescapeDataString(userInfoRaw[..firstColon]);
             var password     = Uri.UnescapeDataString(userInfoRaw[(firstColon + 1)..]);
 
-            // Build a clean Npgsql connection string using NpgsqlConnectionStringBuilder
             var builder = new NpgsqlConnectionStringBuilder
             {
-                Host                = uri.Host,
-                Port                = uri.Port > 0 ? uri.Port : 5432,
-                Database            = uri.AbsolutePath.TrimStart('/'),
-                Username            = username,
-                Password            = password,
-                // Internal Render connections work fine with Prefer; external need Require
-                SslMode             = SslMode.Prefer,
+                Host                   = uri.Host,
+                Port                   = uri.Port > 0 ? uri.Port : 5432,
+                Database               = uri.AbsolutePath.TrimStart('/'),
+                Username               = username,
+                Password               = password,
+                SslMode                = SslMode.Prefer,
                 TrustServerCertificate = true,
-                Pooling             = true,
-                MaxPoolSize         = 20,
-                ConnectionIdleLifetime = 300,
+                Pooling                = true,
+                MaxPoolSize            = 20,
             };
 
             return builder.ConnectionString;
         }
 
-        // Fallback to appsettings.json for local development
+        // Priority 3: appsettings.json (local development)
         return configuration.GetConnectionString("DefaultConnection")
                ?? throw new InvalidOperationException("No database connection string configured.");
     }
