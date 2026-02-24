@@ -8,6 +8,9 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext context)
     {
+        // Ensure database and all tables exist (handles fresh Render PostgreSQL deployment)
+        await context.Database.EnsureCreatedAsync();
+
         // 1. Ensure Departments exist
         if (!await context.Departments.AnyAsync())
         {
