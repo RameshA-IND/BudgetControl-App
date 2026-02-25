@@ -37,43 +37,64 @@ public static class DependencyInjection
 
     /// <summary>
     /// Resolves the DB connection string.
-    /// Always parses through NpgsqlConnectionStringBuilder to ensure correct
-    /// encoding — especially for Supabase Supavisor pooler usernames like "postgres.projectref"
-    /// which must be sent verbatim (not URL-encoded).
+    /// Priority:
+    ///   1. Individual DB_HOST / DB_USER / DB_PASS / DB_NAME / DB_PORT env vars (safest for Supabase pooler)
+    ///   2. CONNECTION_STRING env var (raw Npgsql keyword=value string)
+    ///   3. DATABASE_URL env var (postgres:// URI — used by Render Postgres)
+    ///   4. appsettings.json DefaultConnection (local dev)
     /// </summary>
     private static string GetConnectionString(IConfiguration configuration)
     {
-        // Priority 1: CONNECTION_STRING env var (Supabase pooler on Render)
+        // Priority 1: Explicit individual variables — zero parsing needed.
+        // This guarantees the Supabase pooler username "postgres.PROJECTREF" is NEVER mangled.
+        var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+        var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+        var dbPass = Environment.GetEnvironmentVariable("DB_PASS");
+        var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "postgres";
+        var dbPort = int.TryParse(Environment.GetEnvironmentVariable("DB_PORT"), out var p) ? p : 5432;
+
+        if (!string.IsNullOrWhiteSpace(dbHost) && !string.IsNullOrWhiteSpace(dbUser))
+        {
+            return new NpgsqlConnectionStringBuilder
+            {
+                Host                   = dbHost,
+                Port                   = dbPort,
+                Database               = dbName,
+                Username               = dbUser,
+                Password               = dbPass,
+                SslMode                = SslMode.Require,
+                TrustServerCertificate = true,
+                Pooling                = false, // Supavisor handles pooling
+            }.ConnectionString;
+        }
+
+        // Priority 2: Plain Npgsql keyword=value connection string
         var directConnStr = Environment.GetEnvironmentVariable("CONNECTION_STRING");
         if (!string.IsNullOrWhiteSpace(directConnStr))
         {
-            // Parse and re-emit via NpgsqlConnectionStringBuilder so that
-            // the username "postgres.PROJECTREF" is passed correctly to Supavisor.
-            var parsed = new NpgsqlConnectionStringBuilder(directConnStr);
-            // Force these Supabase-pooler-safe settings
-            parsed.SslMode                = SslMode.Require;
-            parsed.TrustServerCertificate = true;
-            parsed.Pooling                = false;  // Let Supavisor pool; don't double-pool
+            var parsed = new NpgsqlConnectionStringBuilder(directConnStr)
+            {
+                SslMode                = SslMode.Require,
+                TrustServerCertificate = true,
+                Pooling                = false,
+            };
             return parsed.ConnectionString;
         }
 
-        // Priority 2: Render's postgres:// DATABASE_URL (used with Render Postgres)
+        // Priority 3: Render's postgres:// DATABASE_URL URI
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
         if (!string.IsNullOrWhiteSpace(databaseUrl))
         {
-            // Ensure it has a valid scheme for Uri parsing
             if (databaseUrl.StartsWith("postgres://"))
                 databaseUrl = "postgresql" + databaseUrl[8..];
 
-            var uri = new Uri(databaseUrl);
+            var uri        = new Uri(databaseUrl);
+            var userInfo   = uri.UserInfo;
+            var colonIdx   = userInfo.IndexOf(':');
+            var username   = Uri.UnescapeDataString(userInfo[..colonIdx]);
+            var password   = Uri.UnescapeDataString(userInfo[(colonIdx + 1)..]);
 
-            // Split only on the FIRST colon — passwords can contain colons
-            var userInfoRaw = uri.UserInfo;
-            var firstColon  = userInfoRaw.IndexOf(':');
-            var username     = Uri.UnescapeDataString(userInfoRaw[..firstColon]);
-            var password     = Uri.UnescapeDataString(userInfoRaw[(firstColon + 1)..]);
-
-            var builder = new NpgsqlConnectionStringBuilder
+            return new NpgsqlConnectionStringBuilder
             {
                 Host                   = uri.Host,
                 Port                   = uri.Port > 0 ? uri.Port : 5432,
@@ -84,12 +105,10 @@ public static class DependencyInjection
                 TrustServerCertificate = true,
                 Pooling                = true,
                 MaxPoolSize            = 20,
-            };
-
-            return builder.ConnectionString;
+            }.ConnectionString;
         }
 
-        // Priority 3: appsettings.json (local development)
+        // Priority 4: appsettings.json (local development)
         return configuration.GetConnectionString("DefaultConnection")
                ?? throw new InvalidOperationException("No database connection string configured.");
     }
