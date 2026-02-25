@@ -37,15 +37,25 @@ public static class DependencyInjection
 
     /// <summary>
     /// Resolves the DB connection string.
-    /// On Render, DATABASE_URL is injected as postgres://user:pass@host:port/db
-    /// We convert that to an Npgsql-compatible connection string.
+    /// Always parses through NpgsqlConnectionStringBuilder to ensure correct
+    /// encoding — especially for Supabase Supavisor pooler usernames like "postgres.projectref"
+    /// which must be sent verbatim (not URL-encoded).
     /// </summary>
     private static string GetConnectionString(IConfiguration configuration)
     {
-        // Priority 1: Plain Npgsql connection string (used with Supabase on Render)
+        // Priority 1: CONNECTION_STRING env var (Supabase pooler on Render)
         var directConnStr = Environment.GetEnvironmentVariable("CONNECTION_STRING");
         if (!string.IsNullOrWhiteSpace(directConnStr))
-            return directConnStr;
+        {
+            // Parse and re-emit via NpgsqlConnectionStringBuilder so that
+            // the username "postgres.PROJECTREF" is passed correctly to Supavisor.
+            var parsed = new NpgsqlConnectionStringBuilder(directConnStr);
+            // Force these Supabase-pooler-safe settings
+            parsed.SslMode                = SslMode.Require;
+            parsed.TrustServerCertificate = true;
+            parsed.Pooling                = false;  // Let Supavisor pool; don't double-pool
+            return parsed.ConnectionString;
+        }
 
         // Priority 2: Render's postgres:// DATABASE_URL (used with Render Postgres)
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
