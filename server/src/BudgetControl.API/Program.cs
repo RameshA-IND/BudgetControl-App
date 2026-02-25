@@ -116,6 +116,29 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// TEMP DEBUG: Remove after fixing connection issue
+app.MapGet("/api/debug-env", () =>
+{
+    var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+    var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+    var dbPass = Environment.GetEnvironmentVariable("DB_PASS") != null ? "SET" : "NOT_SET";
+    var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+    var dbPort = Environment.GetEnvironmentVariable("DB_PORT");
+    var connStr = Environment.GetEnvironmentVariable("CONNECTION_STRING");
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    return Results.Ok(new
+    {
+        DB_HOST = dbHost ?? "NOT_SET",
+        DB_USER = dbUser ?? "NOT_SET",
+        DB_PASS = dbPass,
+        DB_NAME = dbName ?? "NOT_SET",
+        DB_PORT = dbPort ?? "NOT_SET",
+        CONNECTION_STRING_PREFIX = connStr != null ? connStr[..Math.Min(40, connStr.Length)] : "NOT_SET",
+        DATABASE_URL_SET = databaseUrl != null ? "YES" : "NO",
+        ASPNETCORE_ENV = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "NOT_SET"
+    });
+});
+
 // Seed Database — retry because Render DB can take a few seconds to be ready
 using (var scope = app.Services.CreateScope())
 {
