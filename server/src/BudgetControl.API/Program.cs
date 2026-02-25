@@ -134,6 +134,7 @@ app.MapGet("/api/debug-env", () =>
         DB_NAME = dbName ?? "NOT_SET",
         DB_PORT = dbPort ?? "NOT_SET",
         CONNECTION_STRING_PREFIX = connStr != null ? connStr[..Math.Min(40, connStr.Length)] : "NOT_SET",
+        DATABASE_URL_PREFIX = databaseUrl != null ? databaseUrl[..Math.Min(80, databaseUrl.Length)] : "NOT_SET",
         DATABASE_URL_SET = databaseUrl != null ? "YES" : "NO",
         ASPNETCORE_ENV = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "NOT_SET"
     });
