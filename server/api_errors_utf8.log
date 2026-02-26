@@ -1,2 +1,0 @@
-﻿   1:7>C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.API\Controllers\ReportsController.cs(17,73): error CS1503: Argument 1: cannot convert from 'System.Guid?' to 'int?' [C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.API\BudgetControl.API.csproj]
-   1:7>C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.API\Controllers\ReportsController.cs(25,71): error CS1503: Argument 1: cannot convert from 'System.Guid?' to 'int?' [C:\Ideassion\AI Project\BudgetControle\server\src\BudgetControl.API\BudgetControl.API.csproj]
