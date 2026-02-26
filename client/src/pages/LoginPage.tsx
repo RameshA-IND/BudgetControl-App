@@ -38,7 +38,7 @@ export default function LoginPage() {
             </div>
             <div className="login-card">
                 <div className="login-logo">
-                    <div className="logo-icon">B</div>
+                    <img src="/logo.svg" alt="BudgetQ Logo" style={{ width: '48px', height: '48px', marginBottom: '16px' }} />
                     <h1>BudgetQ</h1>
                     <p>Departmental Budget Control Platform</p>
                 </div>

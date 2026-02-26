@@ -38,7 +38,7 @@ export default function Layout() {
         <div className="app-layout">
             <aside className="sidebar">
                 <div className="sidebar-logo">
-                    <div className="logo-icon">B</div>
+                    <img src="/logo.svg" alt="BudgetQ Logo" style={{ width: '36px', height: '36px' }} />
                     <div>
                         <div className="logo-text">Budget<span>Q</span></div>
                         <div className="logo-subtitle">Finance Platform</div>

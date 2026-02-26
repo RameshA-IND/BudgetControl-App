@@ -47,7 +47,7 @@ export default function RegisterPage() {
             </div>
             <div className="login-card" style={{ maxWidth: 480 }}>
                 <div className="login-logo">
-                    <div className="logo-icon">B</div>
+                    <img src="/logo.svg" alt="BudgetQ Logo" style={{ width: '48px', height: '48px', marginBottom: '16px' }} />
                     <h1>Create Account</h1>
                     <p>Join BudgetQ Platform</p>
                 </div>
