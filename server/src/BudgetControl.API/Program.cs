@@ -42,15 +42,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        var allowedOrigins = (
-            Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")
-            ?? builder.Configuration["AllowedOrigins"]
-            ?? "http://localhost:5173"
-        ).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
         policy
-            .WithOrigins(allowedOrigins)
-            .SetIsOriginAllowedToAllowWildcardSubdomains()
+            .SetIsOriginAllowed(origin => true) // Dynamically allow any origin (e.g. localhost, 127.0.0.1, Vercel, dynamic ports)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -99,6 +92,14 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    // Configure Swagger to use generated XML documentation comments
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 });
 
 var app = builder.Build();
@@ -115,6 +116,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Redirect root URL to Swagger UI page
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/swagger");
+    return Task.CompletedTask;
+});
 
 // TEMP DEBUG: Remove after fixing connection issue
 app.MapGet("/api/debug-env", () =>
